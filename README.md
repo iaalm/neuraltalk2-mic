@@ -4,7 +4,7 @@
 ### Before all
 This work is forked from fabulous [neuraltalk2](https://github.com/karpathy/neuraltalk2) from [karparthy](https://github.com/karpathy). I replace the part of VGG to ResNet from [fb.resnet.torch](https://github.com/facebook/fb.resnet.torch).
 
-The only files I change are the [misc/net_utils.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/misc/net_utils.lua), [misc/transforms.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/misc/transforms.lua)(from copy from [fb.resnet.torch](https://github.com/facebook/fb.resnet.torch)), and [train.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/train.lua)
+The only files I change are the [misc/net_utils.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/misc/net_utils.lua), [misc/transforms.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/misc/transforms.lua)(copy from [fb.resnet.torch](https://github.com/facebook/fb.resnet.torch)), and [train.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/train.lua)
 
 ---
 
