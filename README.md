@@ -1,5 +1,12 @@
 
-# NeuralTalk2
+# NeuralTalk2 on ResNet
+
+### Before all
+This work is forked from fabulous neuraltalk2 from karparthy. I replace the part of VGG to ResNet from [fb.resnet.torch](https://github.com/facebook/fb.resnet.torch).
+The only file I change is the [misc/net_utils.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/misc/net_utils.lua), [misc/transforms.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/misc/transforms.lua)(from copy from [fb.resnet.torch](https://github.com/facebook/fb.resnet.torch)), and [train.lua](https://github.com/ruotianluo/neuraltalk2_resnet/blob/master/train.lua)
+
+---
+
 
 Recurrent Neural Network captions your images. Now much faster and better than the original [NeuralTalk](https://github.com/karpathy/neuraltalk). Compared to the original NeuralTalk this implementation is **batched, uses Torch, runs on a GPU, and supports CNN finetuning**. All of these together result in quite a large increase in training speed for the Language Model (~100x), but overall not as much because we also have to forward a VGGNet. However, overall very good models can be trained in 2-3 days, and they show a much better performance.
 

@@ -1,80 +1,52 @@
 local utils = require 'misc.utils'
 local net_utils = {}
+local fb_transforms = require 'misc.transforms'
 
--- take a raw CNN from Caffe and perform surgery. Note: VGG-16 SPECIFIC!
+-- Load resnet from facebook
 function net_utils.build_cnn(cnn, opt)
-  local layer_num = utils.getopt(opt, 'layer_num', 38)
   local backend = utils.getopt(opt, 'backend', 'cudnn')
   local encoding_size = utils.getopt(opt, 'encoding_size', 512)
   
+  cnn_part = cnn
+  cnn_part:remove(#cnn_part.modules)
+
+  cnn_part:add(nn.Linear(2048,encoding_size))
+  cnn_part:add(nn.ReLU(true))
+  
   if backend == 'cudnn' then
-    require 'cudnn'
-    backend = cudnn
-  elseif backend == 'nn' then
-    require 'nn'
-    backend = nn
-  else
-    error(string.format('Unrecognized backend "%s"', backend))
+    cudnn.convert(cnn_part, cudnn)
   end
-
-  -- copy over the first layer_num layers of the CNN
-  local cnn_part = nn.Sequential()
-  for i = 1, layer_num do
-    local layer = cnn:get(i)
-
-    if i == 1 then
-      -- convert kernels in first conv layer into RGB format instead of BGR,
-      -- which is the order in which it was trained in Caffe
-      local w = layer.weight:clone()
-      -- swap weights to R and B channels
-      print('converting first layer conv filters from BGR to RGB...')
-      layer.weight[{ {}, 1, {}, {} }]:copy(w[{ {}, 3, {}, {} }])
-      layer.weight[{ {}, 3, {}, {} }]:copy(w[{ {}, 1, {}, {} }])
-    end
-
-    cnn_part:add(layer)
-  end
-
-  cnn_part:add(nn.Linear(4096,encoding_size))
-  cnn_part:add(backend.ReLU(true))
   return cnn_part
 end
 
 -- takes a batch of images and preprocesses them
--- VGG-16 network is hardcoded, as is 224 as size to forward
+-- imgs need to be 0..1, and 224 as size to forward
 function net_utils.prepro(imgs, data_augment, on_gpu)
   assert(data_augment ~= nil, 'pass this in. careful here.')
   assert(on_gpu ~= nil, 'pass this in. careful here.')
+  
+  imgs = imgs:float() 
+  imgs:div(255)
+  local meanstd = {
+     mean = { 0.485, 0.456, 0.406 },
+     std = { 0.229, 0.224, 0.225 },
+  }
 
-  local h,w = imgs:size(3), imgs:size(4)
+  local transform = fb_transforms.Compose{
+     fb_transforms.ColorNormalize(meanstd),
+     fb_transforms.CenterCrop(224),
+  }
+  
   local cnn_input_size = 224
-
-  -- cropping data augmentation, if needed
-  if h > cnn_input_size or w > cnn_input_size then 
-    local xoff, yoff
-    if data_augment then
-      xoff, yoff = torch.random(w-cnn_input_size), torch.random(h-cnn_input_size)
-    else
-      -- sample the center
-      xoff, yoff = math.ceil((w-cnn_input_size)/2), math.ceil((h-cnn_input_size)/2)
-    end
-    -- crop.
-    imgs = imgs[{ {}, {}, {yoff,yoff+cnn_input_size-1}, {xoff,xoff+cnn_input_size-1} }]
+  imgs_out = torch.Tensor(imgs:size(1), imgs:size(2), cnn_input_size, cnn_input_size):type(imgs:type())
+  for i = 1, imgs:size(1) do
+    imgs_out[i] = transform(imgs[i])
   end
 
   -- ship to gpu or convert from byte to float
-  if on_gpu then imgs = imgs:cuda() else imgs = imgs:float() end
+  if on_gpu then imgs_out = imgs_out:cuda() else imgs_out = imgs_out:float() end
 
-  -- lazily instantiate vgg_mean
-  if not net_utils.vgg_mean then
-    net_utils.vgg_mean = torch.FloatTensor{123.68, 116.779, 103.939}:view(1,3,1,1) -- in RGB order
-  end
-  net_utils.vgg_mean = net_utils.vgg_mean:typeAs(imgs) -- a noop if the types match
-
-  -- subtract vgg mean
-  imgs:add(-1, net_utils.vgg_mean:expandAs(imgs))
-
-  return imgs
+  return imgs_out
 end
 
 -- layer that expands features out so we can forward multiple sentences per image

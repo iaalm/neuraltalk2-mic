@@ -23,8 +23,7 @@ cmd:text('Options')
 -- Data input settings
 cmd:option('-input_h5','coco/data.h5','path to the h5file containing the preprocessed dataset')
 cmd:option('-input_json','coco/data.json','path to the json file containing additional info and vocab')
-cmd:option('-cnn_proto','model/VGG_ILSVRC_16_layers_deploy.prototxt','path to CNN prototxt file in Caffe format. Note this MUST be a VGGNet-16 right now.')
-cmd:option('-cnn_model','model/VGG_ILSVRC_16_layers.caffemodel','path to CNN model file containing the weights, Caffe format. Note this MUST be a VGGNet-16 right now.')
+cmd:option('-cnn_model','model/resnet-101.t7','path to CNN model file containing the weights, Caffe format. Note this MUST be a VGGNet-16 right now.')
 cmd:option('-start_from', '', 'path to a model checkpoint to initialize model weights from. Empty = don\'t')
 
 -- Model settings
@@ -92,7 +91,7 @@ local loader = DataLoader{h5_file = opt.input_h5, json_file = opt.input_json}
 -- Initialize the networks
 -------------------------------------------------------------------------------
 local protos = {}
-
+local iter
 if string.len(opt.start_from) > 0 then
   -- load protos from file
   print('initializing weights from ' .. opt.start_from)
@@ -103,6 +102,7 @@ if string.len(opt.start_from) > 0 then
   for k,v in pairs(lm_modules) do net_utils.unsanitize_gradients(v) end
   protos.crit = nn.LanguageModelCriterion() -- not in checkpoints, create manually
   protos.expander = nn.FeatExpander(opt.seq_per_img) -- not in checkpoints, create manually
+  iter = checkpoint.iter + 1
 else
   -- create protos from scratch
   -- intialize language model
@@ -118,7 +118,7 @@ else
   -- initialize the ConvNet
   local cnn_backend = opt.backend
   if opt.gpuid == -1 then cnn_backend = 'nn' end -- override to nn if gpu is disabled
-  local cnn_raw = loadcaffe.load(opt.cnn_proto, opt.cnn_model, cnn_backend)
+  local cnn_raw = torch.load(opt.cnn_model)
   protos.cnn = net_utils.build_cnn(cnn_raw, {encoding_size = opt.input_encoding_size, backend = cnn_backend})
   -- initialize a special FeatExpander module that "corrects" for the batch number discrepancy 
   -- where we have multiple captions per one image in a batch. This is done for efficiency
@@ -126,6 +126,7 @@ else
   protos.expander = nn.FeatExpander(opt.seq_per_img)
   -- criterion for the language model
   protos.crit = nn.LanguageModelCriterion()
+  iter = 1
 end
 
 -- ship everything to GPU, maybe
@@ -203,14 +204,18 @@ local function eval_split(split, evalopt)
 
     -- if we wrapped around the split or used up val imgs budget then bail
     local ix0 = data.bounds.it_pos_now
-    local ix1 = math.min(data.bounds.it_max, val_images_use)
+    
+    local ix1 = data.bounds.it_max
+    if val_images_use ~= 1 then
+      ix1 = math.min(ix1, val_images_use)
+    end
     if verbose then
       print(string.format('evaluating validation performance... %d/%d (%f)', ix0-1, ix1, loss))
     end
 
     if loss_evals % 10 == 0 then collectgarbage() end
     if data.bounds.wrapped then break end -- the split ran out of data, lets break out
-    if n >= val_images_use then break end -- we've used enough images
+    if val_images_use ~= -1 and n >= val_images_use then break end -- we've used enough images
   end
 
   local lang_stats
@@ -224,7 +229,7 @@ end
 -------------------------------------------------------------------------------
 -- Loss function
 -------------------------------------------------------------------------------
-local iter = 0
+
 local function lossFun()
   protos.cnn:training()
   protos.lm:training()
