@@ -102,7 +102,7 @@ if string.len(opt.start_from) > 0 then
   for k,v in pairs(lm_modules) do net_utils.unsanitize_gradients(v) end
   protos.crit = nn.LanguageModelCriterion() -- not in checkpoints, create manually
   protos.expander = nn.FeatExpander(opt.seq_per_img) -- not in checkpoints, create manually
-  iter = checkpoint.iter + 1
+  iter = loaded_checkpoint.iter + 1
 else
   -- create protos from scratch
   -- intialize language model
