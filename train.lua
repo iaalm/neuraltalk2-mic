@@ -91,7 +91,11 @@ local loader = DataLoader{h5_file = opt.input_h5, json_file = opt.input_json}
 -- Initialize the networks
 -------------------------------------------------------------------------------
 local protos = {}
-local iter
+local iter = 0
+local loss_history = {}
+local val_lang_stats_history = {}
+local val_loss_history = {}
+
 if string.len(opt.start_from) > 0 then
   -- load protos from file
   print('initializing weights from ' .. opt.start_from)
@@ -102,7 +106,11 @@ if string.len(opt.start_from) > 0 then
   for k,v in pairs(lm_modules) do net_utils.unsanitize_gradients(v) end
   protos.crit = nn.LanguageModelCriterion() -- not in checkpoints, create manually
   protos.expander = nn.FeatExpander(opt.seq_per_img) -- not in checkpoints, create manually
-  iter = loaded_checkpoint.iter + 1
+  -- load past training situation
+  iter = loaded_checkpoint.iter or iter
+  loss_history = loaded_checkpoint.loss_history or loss_history
+  val_lang_stats_history = loaded_checkpoint.val_lang_stats_history or val_lang_stats_history
+  val_loss_history = loaded_checkpoint.val_loss_history or val_loss_history
 else
   -- create protos from scratch
   -- intialize language model
@@ -126,7 +134,6 @@ else
   protos.expander = nn.FeatExpander(opt.seq_per_img)
   -- criterion for the language model
   protos.crit = nn.LanguageModelCriterion()
-  iter = 1
 end
 
 -- ship everything to GPU, maybe
@@ -292,9 +299,6 @@ end
 local loss0
 local optim_state = {}
 local cnn_optim_state = {}
-local loss_history = {}
-local val_lang_stats_history = {}
-local val_loss_history = {}
 local best_score
 while true do  
 
