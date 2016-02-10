@@ -91,7 +91,7 @@ local loader = DataLoader{h5_file = opt.input_h5, json_file = opt.input_json}
 -- Initialize the networks
 -------------------------------------------------------------------------------
 local protos = {}
-local iter = 0
+local iter = 1
 local loss_history = {}
 local val_lang_stats_history = {}
 local val_loss_history = {}
@@ -107,7 +107,7 @@ if string.len(opt.start_from) > 0 then
   protos.crit = nn.LanguageModelCriterion() -- not in checkpoints, create manually
   protos.expander = nn.FeatExpander(opt.seq_per_img) -- not in checkpoints, create manually
   -- load past training situation
-  iter = loaded_checkpoint.iter or iter
+  iter = loaded_checkpoint.iter + 1
   loss_history = loaded_checkpoint.loss_history or loss_history
   val_lang_stats_history = loaded_checkpoint.val_lang_stats_history or val_lang_stats_history
   val_loss_history = loaded_checkpoint.val_loss_history or val_loss_history
