@@ -213,7 +213,7 @@ local function eval_split(split, evalopt)
     local ix0 = data.bounds.it_pos_now
     
     local ix1 = data.bounds.it_max
-    if val_images_use ~= 1 then
+    if val_images_use ~= -1 then
       ix1 = math.min(ix1, val_images_use)
     end
     if verbose then

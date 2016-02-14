@@ -8,3 +8,4 @@ testimages/
 checkpoints/
 *.t7
 *.json
+/.project
