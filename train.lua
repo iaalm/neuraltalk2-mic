@@ -58,6 +58,7 @@ cmd:option('-save_checkpoint_every', 2500, 'how often to save a model checkpoint
 cmd:option('-checkpoint_path', '', 'folder to save checkpoints into (empty = this folder)')
 cmd:option('-language_eval', 0, 'Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
 cmd:option('-losses_log_every', 25, 'How often do we snapshot losses, for inclusion in the progress dump? (0 = disable)')
+cmd:option('-load_best_score', 0, 'Do we load best score from the save file.')
 
 -- misc
 cmd:option('-backend', 'cudnn', 'nn|cudnn')
@@ -95,6 +96,7 @@ local iter = 1
 local loss_history = {}
 local val_lang_stats_history = {}
 local val_loss_history = {}
+local best_score
 
 if string.len(opt.start_from) > 0 then
   -- load protos from file
@@ -111,6 +113,9 @@ if string.len(opt.start_from) > 0 then
   loss_history = loaded_checkpoint.loss_history or loss_history
   val_lang_stats_history = loaded_checkpoint.val_lang_stats_history or val_lang_stats_history
   val_loss_history = loaded_checkpoint.val_loss_history or val_loss_history
+  if opt.load_best_score == 1 then
+    best_score = loaded_checkpoint.best_score
+  end
 else
   -- create protos from scratch
   -- intialize language model
@@ -299,7 +304,6 @@ end
 local loss0
 local optim_state = {}
 local cnn_optim_state = {}
-local best_score
 while true do  
 
   -- eval loss/gradient
@@ -350,6 +354,7 @@ while true do
         save_protos.lm = thin_lm -- these are shared clones, and point to correct param storage
         save_protos.cnn = thin_cnn
         checkpoint.protos = save_protos
+        checkpoint.best_score = best_score
         -- also include the vocabulary mapping so that we can use the checkpoint 
         -- alone to run on arbitrary images without the data loader
         checkpoint.vocab = loader:getVocab()
