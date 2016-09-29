@@ -1,8 +1,8 @@
 require 'nn'
 require 'nngraph'
 
-local LSTM = {}
-function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn)
+local GRU = {}
+function GRU.gru(input_size, output_size, rnn_size, n, dropout, res_rnn)
   dropout = dropout or 0 
 
   -- there will be 2*n+1 inputs
@@ -25,35 +25,37 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn)
       input_size_L = input_size
     else 
       if res_rnn and L > 2 then
-        x = nn.CAddTable()({outputs[(L-1)*2], outputs[(L-2)*2]})
+        x = nn.CAddTable()({outputs[(L-1)*2] + outputs[(L-2)*2]})
       else
         x = outputs[(L-1)*2] 
-      end
+      end 
       if dropout > 0 then x = nn.Dropout(dropout)(x):annotate{name='drop_' .. L} end -- apply dropout, if any
       input_size_L = rnn_size
     end
     -- evaluate the input sums at once for efficiency
-    local i2h = nn.Linear(input_size_L, 4 * rnn_size)(x):annotate{name='i2h_'..L}
-    local h2h = nn.Linear(rnn_size, 4 * rnn_size)(prev_h):annotate{name='h2h_'..L}
+    local i2h = nn.Linear(input_size_L, 2 * rnn_size)(x):annotate{name='i2h_'..L}
+    local h2h = nn.Linear(rnn_size, 2 * rnn_size)(prev_h):annotate{name='h2h_'..L}
     local all_input_sums = nn.CAddTable()({i2h, h2h})
 
-    local reshaped = nn.Reshape(4, rnn_size)(all_input_sums)
-    local n1, n2, n3, n4 = nn.SplitTable(2)(reshaped):split(4)
+    local reshaped = nn.Reshape(2, rnn_size)(all_input_sums)
+    local n1, n2 = nn.SplitTable(2)(reshaped):split(2)
     -- decode the gates
-    local in_gate = nn.Sigmoid()(n1)
-    local forget_gate = nn.Sigmoid()(n2)
-    local out_gate = nn.Sigmoid()(n3)
+    local reset_gate = nn.Sigmoid()(n1)
+    local update_gate = nn.Sigmoid()(n2)
+    local not_update_gate = nn.AddConstant(1,true)(nn.Mul(-1)(update_gate))
     -- decode the write inputs
-    local in_transform = nn.Tanh()(n4)
+    local in_transform = nn.CMulTable()({reset_gate, prev_h})
+    local i2o = nn.Linear(input_size_L, rnn_size)(x):annotate{name='i2o_'..L}
+    local h2o = nn.Linear(rnn_size, rnn_size)(in_transform):annotate{name='h2o_'..L}
+
+    local h_hat = nn.Tanh()(nn.CAddTable()({i2o, h2o}))
     -- perform the LSTM update
-    local next_c           = nn.CAddTable()({
-        nn.CMulTable()({forget_gate, prev_c}),
-        nn.CMulTable()({in_gate,     in_transform})
+    local next_h           = nn.CAddTable()({
+        nn.CMulTable()({not_update_gate, prev_h}),
+        nn.CMulTable()({update_gate,     h_hat})
       })
-    -- gated cells form the output
-    local next_h = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
     
-    table.insert(outputs, next_c)
+    table.insert(outputs, prev_c)
     table.insert(outputs, next_h)
   end
 
@@ -67,5 +69,5 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn)
   return nn.gModule(inputs, outputs)
 end
 
-return LSTM
+return GRU
 

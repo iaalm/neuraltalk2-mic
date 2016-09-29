@@ -65,6 +65,12 @@ cmd:option('-backend', 'cudnn', 'nn|cudnn')
 cmd:option('-id', '', 'an id identifying this run/job. used in cross-val and appended when writing progress files')
 cmd:option('-seed', 123, 'random number generator seed to use')
 cmd:option('-gpuid', 0, 'which gpu to use. -1 = use CPU')
+cmd:option('-num_rnn', 1, 'how many LSTM layers')
+
+cmd:option('-distrub_lable', 0, 'distrub lable')
+cmd:option('-beam_size', 1, 'beam search size')
+cmd:option('-rnn_type', 'lstm', 'rnn type: lstm or gru')
+cmd:option('-res_rnn', 0, 'rnn type: lstm or gru')
 
 cmd:text()
 
@@ -74,6 +80,12 @@ cmd:text()
 local opt = cmd:parse(arg)
 torch.manualSeed(opt.seed)
 torch.setdefaulttensortype('torch.FloatTensor') -- for CPU
+
+local checkpoint_path = path.join(opt.checkpoint_path, 'model_' .. opt.id)
+if (path.exists(checkpoint_path .. '.json')) then
+  print('logfile ' .. checkpoint_path .. '.json exists !')
+  os.exit(1)
+end
 
 if opt.gpuid >= 0 then
   require 'cutorch'
@@ -123,10 +135,12 @@ else
   lmOpt.vocab_size = loader:getVocabSize()
   lmOpt.input_encoding_size = opt.input_encoding_size
   lmOpt.rnn_size = opt.rnn_size
-  lmOpt.num_layers = 1
+  lmOpt.num_layers = opt.num_rnn
   lmOpt.dropout = opt.drop_prob_lm
   lmOpt.seq_length = loader:getSeqLength()
   lmOpt.batch_size = opt.batch_size * opt.seq_per_img
+  lmOpt.rnn_type = opt.rnn_type
+  lmOpt.res_rnn = (opt.res_rnn == 1)
   protos.lm = nn.LanguageModel(lmOpt)
   -- initialize the ConvNet
   local cnn_backend = opt.backend
@@ -204,7 +218,7 @@ local function eval_split(split, evalopt)
     loss_evals = loss_evals + 1
 
     -- forward the model to also get generated samples for each image
-    local seq = protos.lm:sample(feats)
+    local seq = protos.lm:sample(feats, {beam_size=opt.beam_size})
     local sents = net_utils.decode_sequence(vocab, seq)
     for k=1,#sents do
       local entry = {image_id = data.infos[k].id, caption = sents[k]}
@@ -254,7 +268,7 @@ local function lossFun()
   -- Forward pass
   -----------------------------------------------------------------------------
   -- get batch of data  
-  local data = loader:getBatch{batch_size = opt.batch_size, split = 'train', seq_per_img = opt.seq_per_img}
+  local data = loader:getBatch{batch_size = opt.batch_size, split = 'train', seq_per_img = opt.seq_per_img, distrub_lable = opt.distrub_lable}
   data.images = net_utils.prepro(data.images, true, opt.gpuid >= 0) -- preprocess in place, do data augmentation
   -- data.images: Nx3x224x224 
   -- data.seq: LxM where L is sequence length upper bound, and M = N*seq_per_img
@@ -323,7 +337,6 @@ while true do
       val_lang_stats_history[iter] = lang_stats
     end
 
-    local checkpoint_path = path.join(opt.checkpoint_path, 'model_id' .. opt.id)
 
     -- write a (thin) json report
     local checkpoint = {}
