@@ -40,10 +40,10 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm
     local forget_gate = nn.Sigmoid()(n2)
     local out_gate = nn.Sigmoid()(n3)
     -- decode the write inputs
+    
+    local in_transform = nn.Tanh()(n4)
     if slstm then
-      local in_transform = n4
-    else
-      local in_transform = nn.Tanh()(n4)
+      in_transform = n4
     end
     -- perform the LSTM update
     local next_c           = nn.CAddTable()({
