@@ -25,6 +25,8 @@ function layer:__init(opt)
   -- create the core lstm network. note +1 for both the START and END tokens
   if rnn_type == 'lstm' then
     self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn)
+  elseif rnn_type == 'slstm' then
+    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn, true)
   elseif rnn_type == 'gru' then
     self.core = GRU.gru(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn)
   else
