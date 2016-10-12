@@ -2,7 +2,7 @@ require 'nn'
 require 'nngraph'
 
 local LSTM = {}
-function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm=false)
+function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm)
   dropout = dropout or 0 
 
   -- there will be 2*n+1 inputs
