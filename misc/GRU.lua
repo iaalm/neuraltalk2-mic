@@ -37,7 +37,7 @@ function GRU.gru(input_size, output_size, rnn_size, n, dropout, res_rnn)
     local n1, n2 = nn.SplitTable(2)(reshaped):split(2)
     -- decode the gates
     local reset_gate = nn.Sigmoid()(n1)
-    local update_gate = nn.Sigmoid()(n2)
+    local update_gate = nn.Sigmoid()(nn.AddConstant(1,true)(n2))
     local not_update_gate = nn.AddConstant(1,true)(nn.Mul(-1)(update_gate))
     -- decode the write inputs
     local in_transform = nn.CMulTable()({reset_gate, prev_h})

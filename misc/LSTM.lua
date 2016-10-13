@@ -2,7 +2,7 @@ require 'nn'
 require 'nngraph'
 
 local LSTM = {}
-function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm)
+function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm, f_bias)
   dropout = dropout or 0 
 
   -- there will be 2*n+1 inputs
@@ -35,14 +35,17 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm
 
     local reshaped = nn.Reshape(4, rnn_size)(all_input_sums)
     local n1, n2, n3, n4 = nn.SplitTable(2)(reshaped):split(4)
+    n2 = nn.AddConstant(f_bias,true)(n2)
     -- decode the gates
     local in_gate = nn.Sigmoid()(n1)
     local forget_gate = nn.Sigmoid()(n2)
     local out_gate = nn.Sigmoid()(n3)
     -- decode the write inputs
     
-    local in_transform = n4
-    if not slstm then
+    local in_transform
+    if slstm then
+      in_transform = n4
+    else
       in_transform = nn.Tanh()(n4)
     end
     -- perform the LSTM update
