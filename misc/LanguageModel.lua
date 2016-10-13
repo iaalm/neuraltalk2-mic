@@ -34,6 +34,8 @@ function layer:__init(opt)
     self.core = GRU.gru(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn)
   elseif rnn_type == 'mut1' then
     self.core = MUT.mut1(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn)
+  elseif rnn_type == 'mut3' then
+    self.core = MUT.mut3(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn)
   else
     assert(1==0, 'unsupport rnn type')
   end

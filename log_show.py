@@ -45,6 +45,7 @@ for start_filename in sys.argv[1:]:
                 val_max[name] = max_result
             startx = startx + int(val_data[-1][0])
     except FileNotFoundError:
+        continue
         val_max = {i:float('NaN') for i in val_name}
         finetune_start = float('NaN')
         max_cider = float('NaN')
