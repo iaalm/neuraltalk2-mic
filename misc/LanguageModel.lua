@@ -3,6 +3,7 @@ local utils = require 'misc.utils'
 local net_utils = require 'misc.net_utils'
 local LSTM = require 'misc.LSTM'
 local GRU = require 'misc.GRU'
+local MUT = require 'misc.MUT'
 
 -------------------------------------------------------------------------------
 -- Language Model core
@@ -31,6 +32,8 @@ function layer:__init(opt)
     self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn, true, 0)
   elseif rnn_type == 'gru' then
     self.core = GRU.gru(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn)
+  elseif rnn_type == 'mut1' then
+    self.core = MUT.mut1(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout, res_rnn)
   else
     assert(1==0, 'unsupport rnn type')
   end
