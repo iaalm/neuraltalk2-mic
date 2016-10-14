@@ -1,5 +1,5 @@
 #!/bin/bash
 
 cd coco-caption
-python myeval.py $1
+flock lock -c python myeval.py $1
 cd ../
