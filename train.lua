@@ -247,7 +247,7 @@ local function eval_split(split, evalopt)
 
   local lang_stats
   if opt.language_eval == 1 then
-    lang_stats = net_utils.language_eval(predictions, opt.id)
+    lang_stats = net_utils.language_eval(predictions, torch.random())
   end
 
   return loss_sum/loss_evals, predictions, lang_stats
