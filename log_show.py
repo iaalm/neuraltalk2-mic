@@ -7,9 +7,9 @@ import re
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", type=bool, help="Not sort by CIDEr")
-parser.add_argument("-n", type=bool, help="Not skip nan")
-parser.add_argument("dirs", nargs='+', help="Not sort by CIDEr")
+parser.add_argument("-s", action='store_false', help="Not sort by CIDEr")
+parser.add_argument("-n", action='store_false', help="Not skip nan")
+parser.add_argument("dirs", metavar='dir' ,nargs='+', help="model dirs")
 args = parser.parse_args()
 
 val_name = ["CIDEr","Bleu_1","Bleu_2","Bleu_3","Bleu_4","METEOR","ROUGE_L"]
@@ -49,17 +49,19 @@ for start_filename in args.dirs:
                 val_max[name] = max_result
             startx = startx + int(val_data[-1][0])
     except FileNotFoundError:
-        if not args.n:
+        if args.n:
             continue
         val_max = {i:float('NaN') for i in val_name}
         finetune_start = float('NaN')
         max_cider = float('NaN')
     table.append((start_filename, val_max, finetune_start, max_cider))
+
+# output
 print(" "*20, end="")
 for name in val_name:
     print("\t"+name, end="")
 print("\t  pos(k)")
-if not args.s:
+if args.s:
     table = sorted(table, key=lambda x:x[1]['CIDEr'], reverse=True)
 for i in table:
     print("    %-16s"%i[0], end="")
