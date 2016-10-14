@@ -423,7 +423,7 @@ while true do
   iter = iter + 1
   if iter % 10 == 0 then collectgarbage() end -- good idea to do this once in a while, i think
   if loss0 == nil then loss0 = losses.total_loss end
-  if losses.total_loss > loss0 * 20 then
+  if losses.total_loss > loss0 * 20 and losses.total_loss ~= losses.total_loss then -- loss ~= loss for nan
     print('loss seems to be exploding, quitting.')
     break
   end
