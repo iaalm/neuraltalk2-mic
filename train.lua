@@ -1,6 +1,7 @@
 
 require 'torch'
 require 'nn'
+require 'sys'
 require 'nngraph'
 -- exotic things
 require 'loadcaffe'
@@ -321,9 +322,10 @@ local cnn_optim_state = {}
 while true do  
 
   -- eval loss/gradient
+  sys.tic()
   local losses = lossFun()
   if iter % opt.losses_log_every == 0 then loss_history[iter] = losses.total_loss end
-  print(string.format('iter %d: %f', iter, losses.total_loss))
+  print(string.format('iter %d: %f | %f', iter, losses.total_loss, sys.toc()))
 
   -- save checkpoint once in a while (or on final iteration)
   if (iter % opt.save_checkpoint_every == 0 or iter == opt.max_iters) then
