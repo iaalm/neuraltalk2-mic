@@ -4,13 +4,17 @@ import json
 import sys
 import os
 import re
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", type=bool, help="Not sort by CIDEr")
+parser.add_argument("-n", type=bool, help="Not skip nan")
+parser.add_argument("dirs", nargs='+', help="Not sort by CIDEr")
+args = parser.parse_args()
 
 val_name = ["CIDEr","Bleu_1","Bleu_2","Bleu_3","Bleu_4","METEOR","ROUGE_L"]
-print(" "*20, end="")
-for name in val_name:
-    print("\t"+name, end="")
-print("\t  pos(k)")
-for start_filename in sys.argv[1:]:
+table = []
+for start_filename in args.dirs:
     try:
         startx = 0
         filename = os.path.join(start_filename, 'model_.json')
@@ -45,11 +49,20 @@ for start_filename in sys.argv[1:]:
                 val_max[name] = max_result
             startx = startx + int(val_data[-1][0])
     except FileNotFoundError:
-        continue
+        if not args.n:
+            continue
         val_max = {i:float('NaN') for i in val_name}
         finetune_start = float('NaN')
         max_cider = float('NaN')
-    print("    %-16s"%start_filename, end="")
+    table.append((start_filename, val_max, finetune_start, max_cider))
+print(" "*20, end="")
+for name in val_name:
+    print("\t"+name, end="")
+print("\t  pos(k)")
+if not args.s:
+    table = sorted(table, key=lambda x:x[1]['CIDEr'], reverse=True)
+for i in table:
+    print("    %-16s"%i[0], end="")
     for name in val_name:
-        print("\t%.3f"%val_max[name], end="")
-    print("\t%4.0f+%3.0f"%((max_cider-finetune_start)/1000, finetune_start/1000))
+        print("\t%.3f"%i[1][name], end="")
+    print("\t%4.0f+%3.0f"%((i[3]-i[2])/1000, i[2]/1000))
