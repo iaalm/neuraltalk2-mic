@@ -2,8 +2,9 @@ require 'nn'
 require 'nngraph'
 
 local LSTM = {}
-function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm, f_bias)
-  dropout = dropout or 0 
+function LSTM.lstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res_rnn, slstm, f_bias)
+  dropout_l = dropout_l or 0 
+  dropout_t = dropout_t or 0 
 
   -- there will be 2*n+1 inputs
   local inputs = {}
@@ -25,7 +26,7 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm
       input_size_L = input_size
     else 
         x = outputs[(L-1)*2] 
-      if dropout > 0 then x = nn.Dropout(dropout)(x):annotate{name='drop_' .. L} end -- apply dropout, if any
+      if dropout_l > 0 then x = nn.Dropout(dropout_l)(x):annotate{name='drop_l_' .. L} end -- apply dropout_l, if any
       input_size_L = rnn_size
     end
     -- evaluate the input sums at once for efficiency
@@ -57,6 +58,7 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm
     local next_h = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
     
     table.insert(outputs, next_c)
+    if dropout_t > 0 then next_h = nn.Dropout(dropout_t)(next_h):annotate{name='drop_t_' .. L} end -- apply dropout_t, if any
     if res_rnn > 0 and L > res_rnn and (L - 1) % res_rnn == 0 then
       table.insert(outputs, nn.CAddTable()({next_h, outputs[(L-res_rnn)*2]}))
     else
@@ -66,7 +68,7 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout, res_rnn, slstm
 
   -- set up the decoder
   local top_h = outputs[#outputs]
-  if dropout > 0 then top_h = nn.Dropout(dropout)(top_h):annotate{name='drop_final'} end
+  if dropout_l > 0 then top_h = nn.Dropout(dropout_l)(top_h):annotate{name='drop_final'} end
   local proj = nn.Linear(rnn_size, output_size)(top_h):annotate{name='decoder'}
   local logsoft = nn.LogSoftMax()(proj)
   table.insert(outputs, logsoft)

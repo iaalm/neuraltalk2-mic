@@ -2,8 +2,9 @@ require 'nn'
 require 'nngraph'
 
 local MUT = {}
-function MUT.mut1(input_size, output_size, rnn_size, n, dropout, res_rnn)
-  dropout = dropout or 0 
+function MUT.mut1(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res_rnn)
+  dropout_l = dropout_l or 0 
+  dropout_t = dropout_t or 0 
 
   -- there will be 2*n+1 inputs
   local inputs = {}
@@ -25,7 +26,7 @@ function MUT.mut1(input_size, output_size, rnn_size, n, dropout, res_rnn)
       input_size_L = input_size
     else 
       x = outputs[(L-1)*2] 
-      if dropout > 0 then x = nn.Dropout(dropout)(x):annotate{name='drop_' .. L} end -- apply dropout, if any
+      if dropout_l > 0 then x = nn.Dropout(dropout_l)(x):annotate{name='drop_l_' .. L} end -- apply dropout_l, if any
       input_size_L = rnn_size
     end
 
@@ -45,6 +46,7 @@ function MUT.mut1(input_size, output_size, rnn_size, n, dropout, res_rnn)
     -- end core unit
 
     table.insert(outputs, prev_c)
+    if dropout_t > 0 then next_h = nn.Dropout(dropout_t)(next_h):annotate{name='drop_l_' .. L} end -- apply dropout_t, if any
     if res_rnn > 0 and L > res_rnn and (L - 1) % res_rnn == 0 then
       table.insert(outputs, nn.CAddTable()({next_h, outputs[(L-res_rnn)*2]}))
     else
@@ -54,15 +56,16 @@ function MUT.mut1(input_size, output_size, rnn_size, n, dropout, res_rnn)
 
   -- set up the decoder
   local top_h = outputs[#outputs]
-  if dropout > 0 then top_h = nn.Dropout(dropout)(top_h):annotate{name='drop_final'} end
+  if dropout_l > 0 then top_h = nn.Dropout(dropout_l)(top_h):annotate{name='drop_final'} end
   local proj = nn.Linear(rnn_size, output_size)(top_h):annotate{name='decoder'}
   local logsoft = nn.LogSoftMax()(proj)
   table.insert(outputs, logsoft)
 
   return nn.gModule(inputs, outputs)
 end
-function MUT.mut3(input_size, output_size, rnn_size, n, dropout, res_rnn)
-  dropout = dropout or 0 
+function MUT.mut3(input_size, output_size, rnn_size, n, dropout_l, res_rnn)
+  dropout_l = dropout_l or 0 
+  dropout_t = dropout_t or 0 
 
   -- there will be 2*n+1 inputs
   local inputs = {}
@@ -84,7 +87,7 @@ function MUT.mut3(input_size, output_size, rnn_size, n, dropout, res_rnn)
       input_size_L = input_size
     else 
       x = outputs[(L-1)*2] 
-      if dropout > 0 then x = nn.Dropout(dropout)(x):annotate{name='drop_' .. L} end -- apply dropout, if any
+      if dropout_l > 0 then x = nn.Dropout(dropout_l)(x):annotate{name='drop_l_' .. L} end -- apply dropout_l, if any
       input_size_L = rnn_size
     end
 
@@ -106,6 +109,7 @@ function MUT.mut3(input_size, output_size, rnn_size, n, dropout, res_rnn)
     -- end core unit
 
     table.insert(outputs, prev_c)
+    if dropout_t > 0 then next_h = nn.Dropout(dropout_t)(next_h):annotate{name='drop_l_' .. L} end -- apply dropout_t, if any
     if res_rnn > 0 and L > res_rnn and (L - 1) % res_rnn == 0 then
       table.insert(outputs, nn.CAddTable()({next_h, outputs[(L-res_rnn)*2]}))
     else
@@ -115,7 +119,7 @@ function MUT.mut3(input_size, output_size, rnn_size, n, dropout, res_rnn)
 
   -- set up the decoder
   local top_h = outputs[#outputs]
-  if dropout > 0 then top_h = nn.Dropout(dropout)(top_h):annotate{name='drop_final'} end
+  if dropout_l > 0 then top_h = nn.Dropout(dropout_l)(top_h):annotate{name='drop_final'} end
   local proj = nn.Linear(rnn_size, output_size)(top_h):annotate{name='decoder'}
   local logsoft = nn.LogSoftMax()(proj)
   table.insert(outputs, logsoft)
