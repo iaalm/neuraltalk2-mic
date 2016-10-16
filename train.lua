@@ -24,6 +24,7 @@ cmd:text('Options')
 -- Data input settings
 cmd:option('-input_h5','coco/data.h5','path to the h5file containing the preprocessed dataset')
 cmd:option('-input_json','coco/data.json','path to the json file containing additional info and vocab')
+cmd:option('-input_val','annotations/captions_val2014.json','path to the json file containing caption for val')
 cmd:option('-cnn_model','model/resnet-101.t7','path to CNN model file containing the weights, Caffe format. Note this MUST be a VGGNet-16 right now.')
 cmd:option('-start_from', '', 'path to a model checkpoint to initialize model weights from. Empty = don\'t')
 
@@ -249,7 +250,7 @@ local function eval_split(split, evalopt)
 
   local lang_stats
   if opt.language_eval == 1 then
-    lang_stats = net_utils.language_eval(predictions, torch.random())
+    lang_stats = net_utils.language_eval(predictions, opt.input_eval, torch.random())
   end
 
   return loss_sum/loss_evals, predictions, lang_stats
