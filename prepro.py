@@ -13,13 +13,13 @@ Output: a json file and an hdf5 file
 The hdf5 file contains several fields:
 /images is (N,3,256,256) uint8 array of raw image data in RGB format
 /labels is (M,max_length) uint32 array of encoded labels, zero padded
-/label_start_ix and /label_end_ix are (N,) uint32 arrays of pointers to the 
+/label_start_ix and /label_end_ix are (N,) uint32 arrays of pointers to the
   first and last indices (in range 1..M) of labels for each image
 /label_length stores the length of the sequence for each of the M sequences
 
 The json file has a dict that contains:
 - an 'ix_to_word' field storing the vocab in form {ix:'word'}, where ix is 1-indexed
-- an 'images' field that is a list holding auxiliary information for each image, 
+- an 'images' field that is a list holding auxiliary information for each image,
   such as in particular the 'split' it was assigned to.
 """
 
@@ -35,7 +35,7 @@ from scipy.misc import imread, imresize
 import re
 
 def prepro_captions(imgs):
-  
+
   # preprocess all the captions
   print 'example processed tokens:'
   for i,img in enumerate(imgs):
@@ -86,7 +86,7 @@ def build_vocab(imgs, params):
     # additional special UNK token we will use below to map infrequent words to
     print 'inserting the special UNK token'
     vocab.append('UNK')
-  
+
   for img in imgs:
     img['final_captions'] = []
     for txt in img['processed_tokens']:
@@ -96,9 +96,9 @@ def build_vocab(imgs, params):
   return vocab
 
 def encode_captions(imgs, params, wtoi):
-  """ 
+  """
   encode all captions into one large array, which will be 1-indexed.
-  also produces label_start_ix and label_end_ix which store 1-indexed 
+  also produces label_start_ix and label_end_ix which store 1-indexed
   and inclusive (Lua-style) pointers to the first and last caption for
   each image in the dataset.
   """
@@ -129,9 +129,9 @@ def encode_captions(imgs, params, wtoi):
     label_arrays.append(Li)
     label_start_ix[i] = counter
     label_end_ix[i] = counter + n - 1
-    
+
     counter += n
-  
+
   L = np.concatenate(label_arrays, axis=0) # put all the labels together
   assert L.shape[0] == M, 'lengths don\'t match? that\'s weird'
   assert np.all(label_length > 0), 'error: some caption had no words?'
@@ -155,7 +155,38 @@ def main(params):
 
   # assign the splits
   #assign_splits(imgs, params)
-  
+  if not params['not_merge_split']:
+      for img in imgs:
+          if img['split'] in ['val', 'test']:
+              img['split'] = 'val'
+          else:
+              img['split'] = 'train'
+
+  # create output json file
+  out = {}
+  out['ix_to_word'] = itow # encode the (1-indexed) vocab
+  out['images'] = []
+  for i,img in enumerate(imgs):
+
+    jimg = {}
+    jimg['split'] = img['split']
+    if 'filename' in img: jimg['file_path'] = img['filename'] # copy it over, might need
+    if 'imgid' in img: jimg['id'] = img['imgid'] # copy over & mantain an id, if present (e.g. coco ids, useful) can be cocoid
+
+    out['images'].append(jimg)
+
+  json.dump(out, open(params['output_json'], 'w'))
+  print 'wrote ', params['output_json']
+  val = {}
+  val['type'] = 'captions'
+  val['licenses'] = ''
+  val['info'] = ''
+  val['images'] = [{'id':img['imgid'], 'file_name': img['filename']} for img in imgs]
+  val['annotations'] = [{'caption': sent['raw'], 'id': sent['sentid'], 'image_id': sent['imgid']} for img in imgs for sent in img['sentences']]
+  json.dump(val, open(params['output_val'], 'w'))
+  print 'wrote ', params['output_val']
+
+  if params['no_h5']: return
   # encode captions in large arrays, ready to ship to hdf5 file
   L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
 
@@ -190,30 +221,6 @@ def main(params):
   f.close()
   print 'wrote ', params['output_h5']
 
-  # create output json file
-  out = {}
-  out['ix_to_word'] = itow # encode the (1-indexed) vocab
-  out['images'] = []
-  for i,img in enumerate(imgs):
-    
-    jimg = {}
-    jimg['split'] = img['split']
-    if 'filename' in img: jimg['file_path'] = img['filename'] # copy it over, might need
-    if 'imgid' in img: jimg['id'] = img['imgid'] # copy over & mantain an id, if present (e.g. coco ids, useful) can be cocoid
-    
-    out['images'].append(jimg)
-  
-  json.dump(out, open(params['output_json'], 'w'))
-  print 'wrote ', params['output_json']
-  val = {}
-  val['type'] = 'captions'
-  val['licenses'] = ''
-  val['info'] = ''
-  val['images'] = [{'id':img['imgid'], 'file_name': img['filename']} for img in imgs]
-  val['annotations'] = [{'caption': sent['raw'], 'id': sent['sentid'], 'image_id': sent['imgid']} for img in imgs for sent in img['sentences']]
-  json.dump(val, open(params['output_val'], 'w'))
-  print 'wrote ', params['output_val']
-
 if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
@@ -223,11 +230,13 @@ if __name__ == "__main__":
   parser.add_argument('--output_json', default='data.json', help='output json file')
   parser.add_argument('--output_h5', default='data.h5', help='output h5 file')
   parser.add_argument('--output_val', default='data_val.json', help='output val file')
-  
+
   # options
   parser.add_argument('--max_length', default=16, type=int, help='max length of a caption, in number of words. captions longer than this get clipped.')
   parser.add_argument('--images_root', default='', help='root location in which images are stored, to be prepended to file_path in input json')
   parser.add_argument('--word_count_threshold', default=5, type=int, help='only words that occur more than this number of times will be put in vocab')
+  parser.add_argument('--not_merge_split', action='store_true', help='only words that occur more than this number of times will be put in vocab')
+  parser.add_argument('--no_h5', action='store_true', help='only words that occur more than this number of times will be put in vocab')
 
   args = parser.parse_args()
   params = vars(args) # convert to ordinary dict
