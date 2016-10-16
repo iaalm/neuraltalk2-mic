@@ -40,8 +40,8 @@ def prepro_captions(imgs):
   print 'example processed tokens:'
   for i,img in enumerate(imgs):
     img['processed_tokens'] = []
-    for j,s in enumerate(img['captions']):
-      txt = str(s).lower().translate(None, string.punctuation).strip().split()
+    for j,s in enumerate(img['sentences']):
+      txt = str(s['raw']).lower().translate(None, string.punctuation).strip().split()
       img['processed_tokens'].append(txt)
       if i < 10 and j == 0: print txt
 
@@ -95,22 +95,6 @@ def build_vocab(imgs, params):
 
   return vocab
 
-def assign_splits(imgs, params):
-  rrr = re.compile(r'COCO_(\w+)2014_\d+\.jpg')
-  num_val = params['num_val']
-  num_test = params['num_test']
-
-  for i,img in enumerate(imgs):
-       img['split'] = rrr.findall(img['file_path'])[0]
-#      if i < num_val:
-#        img['split'] = 'val'
-#      elif i < num_val + num_test: 
-#        img['split'] = 'test'
-#      else: 
-#        img['split'] = 'train'
-
-  print 'assigned %d to val, %d to test.' % (num_val, num_test)
-
 def encode_captions(imgs, params, wtoi):
   """ 
   encode all captions into one large array, which will be 1-indexed.
@@ -157,7 +141,7 @@ def encode_captions(imgs, params, wtoi):
 
 def main(params):
 
-  imgs = json.load(open(params['input_json'], 'r'))
+  imgs = json.load(open(params['input_json'], 'r'))['images']
   seed(123) # make reproducible
   shuffle(imgs) # shuffle the order
 
@@ -170,7 +154,7 @@ def main(params):
   wtoi = {w:i+1 for i,w in enumerate(vocab)} # inverse table
 
   # assign the splits
-  assign_splits(imgs, params)
+  #assign_splits(imgs, params)
   
   # encode captions in large arrays, ready to ship to hdf5 file
   L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
@@ -185,11 +169,13 @@ def main(params):
   dset = f.create_dataset("images", (N,3,256,256), dtype='uint8') # space for resized images
   for i,img in enumerate(imgs):
     # load the image
-    I = imread(os.path.join(params['images_root'], img['file_path']))
+    if 'filepath' in img:
+        img['filename'] = os.path.join(img['filepath'], img['filename'])
+    I = imread(os.path.join(params['images_root'], img['filename']))
     try:
         Ir = imresize(I, (256,256))
     except:
-        print 'failed resizing image %s - see http://git.io/vBIE0' % (img['file_path'],)
+        print 'failed resizing image %s - see http://git.io/vBIE0' % (img['filename'],)
         raise
     # handle grayscale input images
     if len(Ir.shape) == 2:
@@ -212,13 +198,21 @@ def main(params):
     
     jimg = {}
     jimg['split'] = img['split']
-    if 'file_path' in img: jimg['file_path'] = img['file_path'] # copy it over, might need
-    if 'id' in img: jimg['id'] = img['id'] # copy over & mantain an id, if present (e.g. coco ids, useful)
+    if 'filename' in img: jimg['file_path'] = img['filename'] # copy it over, might need
+    if 'imgid' in img: jimg['id'] = img['imgid'] # copy over & mantain an id, if present (e.g. coco ids, useful) can be cocoid
     
     out['images'].append(jimg)
   
   json.dump(out, open(params['output_json'], 'w'))
   print 'wrote ', params['output_json']
+  val = {}
+  val['type'] = 'captions'
+  val['licenses'] = ''
+  val['info'] = ''
+  val['images'] = [{'id':img['imgid'], 'file_name': img['filename']} for img in imgs]
+  val['annotations'] = [{'caption': sent['raw'], 'id': sent['sentid'], 'image_id': sent['imgid']} for img in imgs for sent in img['sentences']]
+  json.dump(val, open(params['output_val'], 'w'))
+  print 'wrote ', params['output_val']
 
 if __name__ == "__main__":
 
@@ -226,15 +220,14 @@ if __name__ == "__main__":
 
   # input json
   parser.add_argument('--input_json', required=True, help='input json file to process into hdf5')
-  parser.add_argument('--num_val', required=True, type=int, help='number of images to assign to validation data (for CV etc)')
   parser.add_argument('--output_json', default='data.json', help='output json file')
   parser.add_argument('--output_h5', default='data.h5', help='output h5 file')
+  parser.add_argument('--output_val', default='data_val.json', help='output val file')
   
   # options
   parser.add_argument('--max_length', default=16, type=int, help='max length of a caption, in number of words. captions longer than this get clipped.')
   parser.add_argument('--images_root', default='', help='root location in which images are stored, to be prepended to file_path in input json')
   parser.add_argument('--word_count_threshold', default=5, type=int, help='only words that occur more than this number of times will be put in vocab')
-  parser.add_argument('--num_test', default=0, type=int, help='number of test images (to withold until very very end)')
 
   args = parser.parse_args()
   params = vars(args) # convert to ordinary dict
