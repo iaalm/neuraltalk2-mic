@@ -244,7 +244,12 @@ local function eval_split(split, evalopt)
     end
 
     if loss_evals % 10 == 0 then collectgarbage() end
-    if data.bounds.wrapped then break end -- the split ran out of data, lets break out
+    if data.bounds.wrapped then -- the split ran out of data, lets break out
+      for k=1,ix0 do
+        table.remove(predictions) -- remove redundacy images
+      end
+      break
+    end
     if val_images_use ~= -1 and n >= val_images_use then break end -- we've used enough images
   end
 
