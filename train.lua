@@ -66,7 +66,7 @@ cmd:option('-load_best_score', 0, 'Do we load best score from the save file.')
 -- misc
 cmd:option('-backend', 'cudnn', 'nn|cudnn')
 cmd:option('-id', '', 'an id identifying this run/job. used in cross-val and appended when writing progress files')
-cmd:option('-seed', 123, 'random number generator seed to use')
+--cmd:option('-seed', 123, 'random number generator seed to use')
 cmd:option('-gpuid', 0, 'which gpu to use. -1 = use CPU')
 cmd:option('-num_rnn', 1, 'how many LSTM layers')
 
@@ -81,7 +81,7 @@ cmd:text()
 -- Basic Torch initializations
 -------------------------------------------------------------------------------
 local opt = cmd:parse(arg)
-torch.manualSeed(opt.seed)
+--torch.manualSeed(opt.seed)
 torch.setdefaulttensortype('torch.FloatTensor') -- for CPU
 
 local checkpoint_path = path.join(opt.checkpoint_path, 'model_' .. opt.id)
