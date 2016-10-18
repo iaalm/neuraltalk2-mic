@@ -81,7 +81,7 @@ cmd:text()
 -- Basic Torch initializations
 -------------------------------------------------------------------------------
 local opt = cmd:parse(arg)
---torch.manualSeed(opt.seed)
+torch.manualSeed(opt.seed)
 torch.setdefaulttensortype('torch.FloatTensor') -- for CPU
 
 local checkpoint_path = path.join(opt.checkpoint_path, 'model_' .. opt.id)
@@ -255,7 +255,7 @@ local function eval_split(split, evalopt)
 
   local lang_stats
   if opt.language_eval == 1 then
-    lang_stats = net_utils.language_eval(predictions, opt.input_val, torch.random())
+    lang_stats = net_utils.language_eval(predictions, opt.input_val, os.getenv('CUDA_VISIBLE_DEVICES'))
   end
 
   return loss_sum/loss_evals, predictions, lang_stats
