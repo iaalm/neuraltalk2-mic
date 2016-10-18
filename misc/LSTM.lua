@@ -50,7 +50,7 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, r
     
     local in_transform
     if slstm then
-      in_transform = n4
+      in_transform = nn.HardTanh(-1,1,true)(n4)
     else
       in_transform = nn.Tanh()(n4)
     end

@@ -44,7 +44,7 @@ function GRU.gru(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res
     -- decode the gates
     local reset_gate = nn.Sigmoid()(n1)
     local update_gate = nn.Sigmoid()(nn.AddConstant(1,true)(n2))
-    local not_update_gate = nn.AddConstant(1,true)(nn.Mul(-1)(update_gate))
+    local not_update_gate = nn.AddConstant(1,true)(nn.MulConstant(-1)(update_gate))
     -- decode the write inputs
     local in_transform = nn.CMulTable()({reset_gate, prev_h})
     local i2o = nn.Linear(input_size_L, rnn_size)(x):annotate{name='i2o_'..L}
