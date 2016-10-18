@@ -37,7 +37,7 @@ function MUT.mut1(input_size, output_size, rnn_size, n, dropout_l, dropout_t, re
 
     -- begin core unit
     local z = x - nn.Linear(input_size_L, rnn_size) - nn.Sigmoid()
-    local nz = z - nn.Mul(-1) - nn.AddConstant(1,true)
+    local nz = z - nn.MulConstant(-1) - nn.AddConstant(1,true)
     local rx = x - nn.Linear(input_size_L, rnn_size)
     local rr = prev_h - nn.Linear(rnn_size, rnn_size)
     local r = nn.CAddTable()({rx, rr}) - nn.Sigmoid()
@@ -100,7 +100,7 @@ function MUT.mut3(input_size, output_size, rnn_size, n, dropout_l, res_rnn)
     local zx = x - nn.Linear(input_size_L, rnn_size)
     local zh = prev_h - nn.Tanh() - nn.Linear(rnn_size, rnn_size)
     local z = nn.CAddTable()({zx, zh})
-    local nz = z - nn.Mul(-1) - nn.AddConstant(1,true)
+    local nz = z - nn.MulConstant(-1) - nn.AddConstant(1,true)
     local rx = x - nn.Linear(input_size_L, rnn_size)
     local rr = prev_h - nn.Linear(input_size_L, rnn_size)
     local r = nn.CAddTable()({rx, rr}) - nn.Sigmoid()
