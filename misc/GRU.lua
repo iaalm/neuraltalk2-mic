@@ -2,7 +2,7 @@ require 'nn'
 require 'nngraph'
 
 local GRU = {}
-function GRU.gru(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res_rnn)
+function GRU.gru(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res_rnn, normalize)
   dropout_l = dropout_l or 0 
   dropout_t = dropout_t or 0 
 
@@ -57,6 +57,9 @@ function GRU.gru(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res
         nn.CMulTable()({update_gate,     h_hat})
       })
     local next_h = nn.Tanh()(next_h_raw)
+    if normalize ~= 0 then
+      next_h = nn.Normalize(normalize)(next_h)
+    end
     
     table.insert(outputs, prev_c)
     table.insert(outputs, next_h)

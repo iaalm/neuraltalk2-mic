@@ -26,13 +26,15 @@ function layer:__init(opt)
   self.seq_length = utils.getopt(opt, 'seq_length')
   -- create the core lstm network. note +1 for both the START and END tokens
   if rnn_type == 'lstm' then
-    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, false, 0)
+    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0, false, 0)
   elseif rnn_type == 'lstmb' then
-    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, false, 1)
+    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0, false, 1)
   elseif rnn_type == 'slstm' then
-    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, true, 0)
+    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0, true, 0)
+  elseif rnn_type == 'nlstm' then
+    self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 2, true, 0)
   elseif rnn_type == 'gru' then
-    self.core = GRU.gru(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn)
+    self.core = GRU.gru(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0)
   elseif rnn_type == 'mut1' then
     self.core = MUT.mut1(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn)
   elseif rnn_type == 'mut3' then

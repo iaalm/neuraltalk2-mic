@@ -72,7 +72,7 @@ cmd:option('-num_rnn', 1, 'how many LSTM layers')
 
 cmd:option('-distrub_lable', 0, 'distrub lable')
 cmd:option('-beam_size', 1, 'beam search size')
-cmd:option('-rnn_type', 'lstm', 'rnn type: lstm, slstm, lstmb, mut[1-3] or gru')
+cmd:option('-rnn_type', 'lstm', 'rnn type: lstm, slstm, nlstm, lstmb, mut[1-3] or gru')
 cmd:option('-res_rnn', 0, 'res rnn every n layer')
 
 cmd:text()

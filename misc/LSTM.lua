@@ -2,7 +2,7 @@ require 'nn'
 require 'nngraph'
 
 local LSTM = {}
-function LSTM.lstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res_rnn, slstm, f_bias)
+function LSTM.lstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, res_rnn, normalize, slstm, f_bias)
   dropout_l = dropout_l or 0 
   dropout_t = dropout_t or 0 
 
@@ -63,6 +63,9 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, r
     local next_h = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
     
     table.insert(outputs, next_c)
+    if normalize ~= 0 then
+      next_h = nn.Normalize(normalize)(next_h)
+    end
     table.insert(outputs, next_h)
   end
 
