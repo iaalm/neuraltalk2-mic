@@ -99,7 +99,7 @@ function MUT.mut3(input_size, output_size, rnn_size, n, dropout_l, res_rnn)
     -- begin core unit
     local zx = x - nn.Linear(input_size_L, rnn_size)
     local zh = prev_h - nn.Tanh() - nn.Linear(rnn_size, rnn_size)
-    local z = nn.CAddTable()({zx, zh})
+    local z = nn.CAddTable()({zx, zh}) - nn.Sigmoid()
     local nz = z - nn.MulConstant(-1) - nn.AddConstant(1,true)
     local rx = x - nn.Linear(input_size_L, rnn_size)
     local rr = prev_h - nn.Linear(input_size_L, rnn_size)
