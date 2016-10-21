@@ -59,7 +59,7 @@ cmd:option('-cnn_weight_decay', 0, 'L2 weight decay just for the CNN')
 cmd:option('-val_images_use', 3200, 'how many images to use when periodically evaluating the validation loss? (-1 = all)')
 cmd:option('-save_checkpoint_every', 2500, 'how often to save a model checkpoint?')
 cmd:option('-checkpoint_path', '', 'folder to save checkpoints into (empty = this folder)')
-cmd:option('-language_eval', 0, 'Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
+cmd:option('-language_eval', 1, 'Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
 cmd:option('-losses_log_every', 25, 'How often do we snapshot losses, for inclusion in the progress dump? (0 = disable)')
 cmd:option('-load_best_score', 0, 'Do we load best score from the save file.')
 
@@ -85,10 +85,6 @@ torch.manualSeed(opt.seed)
 torch.setdefaulttensortype('torch.FloatTensor') -- for CPU
 
 local checkpoint_path = path.join(opt.checkpoint_path, 'model_' .. opt.id)
-if (path.exists(checkpoint_path .. '.json')) then
-  print('logfile ' .. checkpoint_path .. '.json exists !')
-  os.exit(1)
-end
 
 if opt.gpuid >= 0 then
   require 'cutorch'
