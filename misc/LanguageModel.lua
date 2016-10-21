@@ -29,6 +29,8 @@ function layer:__init(opt)
     self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0, false, 0)
   elseif rnn_type == 'lstmb' then
     self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0, false, 1)
+  elseif rnn_type == 'clstm' then
+    self.core = LSTM.clstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0, false, 1)
   elseif rnn_type == 'slstm' then
     self.core = LSTM.lstm(self.input_encoding_size, self.vocab_size + 1, self.rnn_size, self.num_layers, dropout_l, dropout_t, res_rnn, 0, true, 0)
   elseif rnn_type == 'nlstm' then
