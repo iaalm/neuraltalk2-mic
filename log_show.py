@@ -64,7 +64,7 @@ print("\t  pos(k)")
 if args.s:
     table = sorted(table, key=lambda x:x[1]['CIDEr'], reverse=True)
 for i in table:
-    print("    %-16s"%i[0], end="")
+    print("    %-16s"%os.path.basename(i[0]), end="")
     for name in val_name:
         print("\t%.3f"%i[1][name], end="")
     print("\t%4.0f+%3.0f"%((i[3]-i[2])/1000, i[2]/1000))
