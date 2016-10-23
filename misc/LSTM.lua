@@ -60,7 +60,12 @@ function LSTM.lstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, r
         nn.CMulTable()({in_gate,     in_transform})
       })
     -- gated cells form the output
-    local next_h = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
+    local next_h
+    if slstm then
+      next_h = nn.CMulTable()({out_gate, nn.HardTanh()(next_c)})
+    else
+      next_h = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
+    end
     
     table.insert(outputs, next_c)
     if normalize ~= 0 then
@@ -137,7 +142,12 @@ function LSTM.clstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, 
         nn.CMulTable()({in_gate,     in_transform})
       })
     -- gated cells form the output
-    local next_h = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
+    local next_h
+    if slstm then
+      next_h = nn.CMulTable()({out_gate, nn.HardTanh()(next_c)})
+    else
+      next_h = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
+    end
     
     table.insert(outputs, next_c)
     if normalize ~= 0 then
