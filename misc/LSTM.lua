@@ -118,7 +118,7 @@ function LSTM.clstm(input_size, output_size, rnn_size, n, dropout_l, dropout_t, 
 
     local reshaped = nn.Reshape(3, rnn_size)(all_input_sums)
     local n1, n2, n3 = nn.SplitTable(2)(reshaped):split(3)
-    n2 = nn.AddConstant(f_bias,true)(n1)
+    n1 = nn.AddConstant(f_bias,true)(n1)
     -- decode the gates
     local forget_gate = nn.Sigmoid()(n1)
     local in_gate = forget_gate - nn.MulConstant(-1) - nn.AddConstant(1)
