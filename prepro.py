@@ -159,7 +159,7 @@ def main(params):
   #assign_splits(imgs, params)
   if not params['not_merge_split']:
       for img in imgs:
-          if img['split'] in ['val', 'test']:
+          if img['split'] in ['val']:
               img['split'] = 'val'
           else:
               img['split'] = 'train'
