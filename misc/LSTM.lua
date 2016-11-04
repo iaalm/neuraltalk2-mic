@@ -218,6 +218,7 @@ function LSTM.rnn(input_size, output_size, rnn_size, n, dropout_l, dropout_t, re
   table.insert(outputs, logsoft)
 
   return nn.gModule(inputs, outputs)
+end
 
 return LSTM
 
