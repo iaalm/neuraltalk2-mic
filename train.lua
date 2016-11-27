@@ -36,6 +36,7 @@ cmd:option('-input_encoding_size',512,'the encoding size of each token in the vo
 -- Optimization: General
 cmd:option('-max_iters', -1, 'max number of iterations to run for (-1 = run forever)')
 cmd:option('-batch_size',16,'what is the batch size in number of images per batch? (there will be x seq_per_img sentences)')
+cmd:option('-siter',1,'effective batch_size = batch_size * siter')
 cmd:option('-grad_clip',0.1,'clip gradients at this value (note should be lower than usual 5 because we normalize grads by both batch and seq_length)')
 cmd:option('-drop_prob_lm', 0.5, 'strength of dropout in the Language Model RNN')
 cmd:option('-drop_prob_lm_t', 0, 'strength of dropout in the Language Model RNN')
@@ -281,32 +282,37 @@ local function lossFun()
   -- Forward pass
   -----------------------------------------------------------------------------
   -- get batch of data  
-  local data = loader:getBatch{batch_size = opt.batch_size, split = 'train', seq_per_img = opt.seq_per_img, distrub_lable = opt.distrub_lable}
-  data.images = net_utils.prepro(data.images, true, opt.gpuid >= 0) -- preprocess in place, do data augmentation
-  -- data.images: Nx3x224x224 
-  -- data.seq: LxM where L is sequence length upper bound, and M = N*seq_per_img
+  local total_loss = 0
+  for iter=1,opt.siter do
+    local data = loader:getBatch{batch_size = opt.batch_size, split = 'train', seq_per_img = opt.seq_per_img, distrub_lable = opt.distrub_lable}
+    data.images = net_utils.prepro(data.images, true, opt.gpuid >= 0) -- preprocess in place, do data augmentation
+    -- data.images: Nx3x224x224 
+    -- data.seq: LxM where L is sequence length upper bound, and M = N*seq_per_img
 
-  -- forward the ConvNet on images (most work happens here)
-  local feats = protos.cnn:forward(data.images)
-  -- we have to expand out image features, once for each sentence
-  local expanded_feats = protos.expander:forward(feats)
-  -- forward the language model
-  local logprobs = protos.lm:forward{expanded_feats, data.labels}
-  -- forward the language model criterion
-  local loss = protos.crit:forward(logprobs, data.labels)
-  
-  -----------------------------------------------------------------------------
-  -- Backward pass
-  -----------------------------------------------------------------------------
-  -- backprop criterion
-  local dlogprobs = protos.crit:backward(logprobs, data.labels)
-  -- backprop language model
-  local dexpanded_feats, ddummy = unpack(protos.lm:backward({expanded_feats, data.labels}, dlogprobs))
-  -- backprop the CNN, but only if we are finetuning
-  if opt.finetune_cnn_after >= 0 and iter >= opt.finetune_cnn_after then
-    local dfeats = protos.expander:backward(feats, dexpanded_feats)
-    local dx = protos.cnn:backward(data.images, dfeats)
+    -- forward the ConvNet on images (most work happens here)
+    local feats = protos.cnn:forward(data.images)
+    -- we have to expand out image features, once for each sentence
+    local expanded_feats = protos.expander:forward(feats)
+    -- forward the language model
+    local logprobs = protos.lm:forward{expanded_feats, data.labels}
+    -- forward the language model criterion
+    local loss = protos.crit:forward(logprobs, data.labels)
+    total_loss = total_loss + loss
+
+    -----------------------------------------------------------------------------
+    -- Backward pass
+    -----------------------------------------------------------------------------
+    -- backprop criterion
+    local dlogprobs = protos.crit:backward(logprobs, data.labels)
+    -- backprop language model
+    local dexpanded_feats, ddummy = unpack(protos.lm:backward({expanded_feats, data.labels}, dlogprobs))
+    -- backprop the CNN, but only if we are finetuning
+    if opt.finetune_cnn_after >= 0 and iter >= opt.finetune_cnn_after then
+      local dfeats = protos.expander:backward(feats, dexpanded_feats)
+      local dx = protos.cnn:backward(data.images, dfeats)
+    end
   end
+  total_loss = total_loss / opt.siter
 
   -- clip gradients
   -- print(string.format('claming %f%% of gradients', 100*torch.mean(torch.gt(torch.abs(grad_params), opt.grad_clip))))
@@ -321,7 +327,7 @@ local function lossFun()
   -----------------------------------------------------------------------------
 
   -- and lets get out!
-  local losses = { total_loss = loss }
+  local losses = { total_loss = total_loss }
   return losses
 end
 
