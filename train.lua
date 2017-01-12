@@ -26,6 +26,8 @@ cmd:option('-input_h5','coco/data.h5','path to the h5file containing the preproc
 cmd:option('-input_json','coco/data.json','path to the json file containing additional info and vocab')
 cmd:option('-input_val','annotations/captions_val2014.json','path to the json file containing caption for val')
 cmd:option('-cnn_model','model/resnet-101.t7','path to CNN model file containing the weights, Caffe format. Note this MUST be a VGGNet-16 right now.')
+cmd:option('-cnn_remove',1,'remove the last n layer of pretrained CNN')
+cmd:option('-cnn_outsize',2048,'CNN output size')
 cmd:option('-pretrain_type','raw','raw/save. raw model or saved model')
 cmd:option('-start_from', '', 'path to a model checkpoint to initialize model weights from. Empty = don\'t')
 
@@ -151,13 +153,14 @@ else
   if opt.gpuid == -1 then cnn_backend = 'nn' end -- override to nn if gpu is disabled
   if opt.pretrain_type == 'raw' then
     local cnn_raw = torch.load(opt.cnn_model)
-    protos.cnn = net_utils.build_cnn(cnn_raw, {encoding_size = opt.input_encoding_size, backend = cnn_backend})
+    protos.cnn = net_utils.build_cnn(cnn_raw, {encoding_size = opt.input_encoding_size, backend = cnn_backend, cnn_outsize = opt.cnn_outsize, cnn_remove = opt.cnn_remove})
   elseif opt.pretrain_type == 'save' then
       protos.cnn = torch.load(opt.cnn_model).protos.cnn
   else
     print('wrong save type')
     os.exit(1)
   end
+  print(protos.cnn)
   -- initialize a special FeatExpander module that "corrects" for the batch number discrepancy 
   -- where we have multiple captions per one image in a batch. This is done for efficiency
   -- because doing a CNN forward pass is expensive. We expand out the CNN features for each sentence

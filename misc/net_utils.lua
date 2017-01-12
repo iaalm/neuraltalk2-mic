@@ -6,11 +6,15 @@ local fb_transforms = require 'misc.transforms'
 function net_utils.build_cnn(cnn, opt)
   local backend = utils.getopt(opt, 'backend', 'cudnn')
   local encoding_size = utils.getopt(opt, 'encoding_size', 512)
+  local cnn_remove = utils.getopt(opt, 'cnn_remove', 1)
+  local cnn_outsize = utils.getopt(opt, 'cnn_outsize', 2048)
   
-  cnn_part = cnn
-  cnn_part:remove(#cnn_part.modules)
+  local cnn_part = cnn
+  for _=1,cnn_remove do
+    cnn_part:remove(#cnn_part.modules)
+  end
 
-  cnn_part:add(nn.Linear(2048,encoding_size))
+  cnn_part:add(nn.Linear(cnn_outsize,encoding_size))
   cnn_part:add(nn.ReLU(true))
   
   if backend == 'cudnn' then
