@@ -18,6 +18,8 @@ for start_filename in args.dirs:
     try:
         startx = 0
         filename = os.path.join(start_filename, 'model_.json')
+        if not os.path.exists(filename):
+            filename = os.path.join(start_filename, 'model_id.json')
         dirs = [filename]
         rrr = re.compile(r'\.t7$')
         if not(len(sys.argv) > 2 and sys.argv[2] == '-n'):
@@ -57,14 +59,15 @@ for start_filename in args.dirs:
     table.append((start_filename, val_max, finetune_start, max_cider))
 
 # output
-print(" "*20, end="")
+max_name_len = max([len(i) for i in args.dirs])
+print(" "*(max_name_len), end="")
 for name in val_name:
     print("\t"+name, end="")
 print("\t  pos(k)")
 if args.s:
     table = sorted(table, key=lambda x:x[1]['CIDEr'], reverse=True)
 for i in table:
-    print("    %-16s"%os.path.basename(i[0]), end="")
+    print(("%"+str(max_name_len)+"s")%os.path.basename(i[0]), end="")
     for name in val_name:
         print("\t%.3f"%i[1][name], end="")
     print("\t%4.0f+%3.0f"%((i[3]-i[2])/1000, i[2]/1000))
