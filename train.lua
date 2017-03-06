@@ -288,7 +288,7 @@ local function lossFun()
   -----------------------------------------------------------------------------
   -- get batch of data  
   local total_loss = 0
-  for iter=1,opt.siter do
+  for liter=1,opt.siter do
     local data = loader:getBatch{batch_size = opt.batch_size, split = 'train', seq_per_img = opt.seq_per_img, distrub_lable = opt.distrub_lable}
     data.images = net_utils.prepro(data.images, true, opt.gpuid >= 0) -- preprocess in place, do data augmentation
     -- data.images: Nx3x224x224 
